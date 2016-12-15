@@ -19,7 +19,6 @@ class FileTransferGUI:
     def __init__(self, master):
     # Initializing some values here:
         self.currentTime = time.time()
-        self.localTime = time.localtime()
         self.src = StringVar('')
         self.dst = StringVar('')
         self.timeSince = [0,0,0,0]
@@ -45,13 +44,13 @@ class FileTransferGUI:
         self.header_img = PhotoImage(file = 'fileTransfer.gif')
         self.folder_img = PhotoImage(file = 'folder.gif')
         self.file_img = PhotoImage(file = 'file.gif')
-        self.src_img = PhotoImage(file = 'src.gif')
+        self.src_img = PhotoImage(file = 'src2.gif')
         self.dst_img = PhotoImage(file = 'dst.gif')
         # Header
         ttk.Label(self.frame_header, image = self.header_img).grid(row = 0, column = 0, rowspan = 2)
         ttk.Label(self.frame_header, text = 'Basic File Transfer GUI', style = 'Header.TLabel').grid(row = 0, column = 1)
-        ttk.Label(self.frame_header, wraplength = 200, justify = CENTER,
-                  text = ("Click on the source and destination buttons below to set directories for file transfer.\nRecently modified items will show up highlighted in green.")).grid(row = 1, column = 1)
+        ttk.Label(self.frame_header, wraplength = 250, justify = LEFT,
+                  text = ("Click on the source and destination buttons below to set directories for file transfer.\n\nRecently modified items will show up highlighted in green.\n")).grid(row = 1, column = 1)
         # Content
         self.frame_content = ttk.Frame(master)
         self.frame_content.pack(fill = BOTH, expand = 1) 
@@ -89,14 +88,14 @@ class FileTransferGUI:
         self.dst_treeview.grid_columnconfigure(0, weight=1)
 
          # Directory choice buttons
-        self.srcButton = ttk.Button(self.frame_content, image = self.src_img, text = 'Source Directory',
+        self.srcButton = ttk.Button(self.frame_content, image = self.src_img, text = '  Source Directory   ',
                                     compound = LEFT, command = lambda: self.src.set(choose(self.src_treeview, self.file_img, self.folder_img, self.currentTime, '')))
         self.srcButton.grid(row = 0, column = 0)
         self.dstButton = ttk.Button(self.frame_content, image = self.dst_img, text = 'Destination Directory',
                                     compound = LEFT, command = lambda: self.dst.set(choose(self.dst_treeview, self.file_img, self.folder_img, self.currentTime, '')))
         self.dstButton.grid(row = 0, column = 1)
         self.transferButton  = ttk.Button(self.frame_content, text = 'Transfer',
-                                    command = lambda: transfer(self.src.get(), self.dst.get(), self.currentTime, self.localTime, self.conn))
+                                    command = lambda: transfer(self.src.get(), self.dst.get(), self.currentTime, self.conn))
         self.transferButton.grid(row = 2, column = 0)
         self.refreshButton = ttk.Button(self.frame_content, text = 'Refresh',
                                     command = lambda: choose(self.dst_treeview, self.file_img, self.folder_img, self.currentTime, self.dst.get()))
@@ -172,16 +171,19 @@ def choose(src_treeview, file_img, folder_img, currentTime, existingDir):
 # @args -
     # src, dst - strings which represent the filepath where the directory is located.
     # currentTime - a time.time() object, used to track how recently something was modified
-# @returns - None
+    # conn - a preexisting connection to a sqlite3 database
 #
-# Usage - Moves recently modified(past 24 hours) files from a src directory to a destination directory.
+# @returns - None, but conn will be closed upon execution.
 #
-# Notes - This could probably have been merged with the "Choose" function, but due to subtle diffListerences in application,
+# Usage - Moves recently modified(past 24 hours) files from a src directory to a destination directory,
+#       - Appends a new timestamp entry to database, then closes database connection.
+#
+# Notes - This could probably have been merged with the "Choose" function, but due to subtle differences in application,
 #   I opted to instead have them as two separate functions. I could probably have included a boolean "move" flag to dictate
 #   whether one behavior was intended or the other. However, that did not occur, and probably will never occur.
 #============================================================================================================================
 
-def transfer(src, dst, currentTime, localTime, conn):
+def transfer(src, dst, currentTime, conn):
         children = os.listdir(src)
         for child in children:
             if child.endswith(".git"):
