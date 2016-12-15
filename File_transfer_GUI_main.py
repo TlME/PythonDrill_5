@@ -106,6 +106,29 @@ class FileTransferGUI:
                                      text = ('Time since last file transfer: \n' + str(self.timeSince[0]) + ' Days, '
                                     + str(self.timeSince[1]) + ' Hours, '+ str(self.timeSince[2]) + ' Minutes, ' + str(self.timeSince[3]) + ' Seconds.'))
         self.updateLabel.grid(row = 3, column = 0, columnspan = 2)
+        
+    #===== Clock widget ====================================================================================================================================
+    # Uses the .after() method to have a clock widget with quartz precision.
+    #
+    # Notes - This is part of the GUI class, because I didn't want to make a lot of lambda functions to achieve this effect,
+    #           nor did I want to have a function that repeatedly queried the database to compare times. This probably could also
+    #            have been achieved using some system clock functionality, but I think this way is much more fun.
+    #=======================================================================================================================================================
+    def quartz(self):
+        self.timeSince[3] += 1
+        if self.timeSince[3] >= 60:
+            self.timeSince[3] = 0
+            self.timeSince[2] += 1
+        if  self.timeSince[2] >= 60:
+            self.timeSince[2] = 0
+            self.timeSince[1] += 1
+        if  self.timeSince[1] >= 24:
+            self.timeSince[1] = 0
+            self.timeSince[0] += 1
+        self.updateLabel.config(text = ('Time since last file transfer: \n' + str(self.timeSince[0]) + ' Days, '
+            + str(self.timeSince[1]) + ' Hours, '+ str(self.timeSince[2]) + ' Minutes, ' + str(self.timeSince[3]) + ' Seconds.'))
+        self.updateLabel.after(1000, self.quartz)
+        
 #====== Choose ============================================================================================
 # @args -
     # src_treeview - the treeview widget that is to have elements appended
@@ -149,7 +172,7 @@ def choose(src_treeview, file_img, folder_img, currentTime, existingDir):
 # @args -
     # src, dst - strings which represent the filepath where the directory is located.
     # currentTime - a time.time() object, used to track how recently something was modified
-# @return - None
+# @returns - None
 #
 # Usage - Moves recently modified(past 24 hours) files from a src directory to a destination directory.
 #
@@ -157,6 +180,7 @@ def choose(src_treeview, file_img, folder_img, currentTime, existingDir):
 #   I opted to instead have them as two separate functions. I could probably have included a boolean "move" flag to dictate
 #   whether one behavior was intended or the other. However, that did not occur, and probably will never occur.
 #============================================================================================================================
+
 def transfer(src, dst, currentTime, localTime, conn):
         children = os.listdir(src)
         for child in children:
@@ -177,7 +201,14 @@ def transfer(src, dst, currentTime, localTime, conn):
         conn.commit()
         c.close()
         conn.close()
-# Time conversion
+#==== Time Conversion ===============================================================================================
+# @args -
+    # timeDiff - An integer which is the difference between the currentTime and the recorded lastTransfer time.
+    # diffList - An array with at least 4 elements.
+# @returns - diffList, with the first four elements replaced by standard earth time.
+#
+# Usage - Converts from an arbitrary number of seconds to something more comprehensible to a human
+#====================================================================================================================       
 def timeConvert(timeDiff, diffList):
     diffList[0] = timeDiff // 86400
     timeDiff = timeDiff % 86400
@@ -186,13 +217,12 @@ def timeConvert(timeDiff, diffList):
     diffList[2] = timeDiff // 60
     diffList[3] = timeDiff % 60
     return diffList
-
-#Clock widget
-    
+                    
 # main function execution            
 def main():
     root = Tk()
     fileGUI = FileTransferGUI(root)
+    fileGUI.quartz() 
     root.mainloop()
 
 # module handling
